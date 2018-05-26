@@ -38,6 +38,7 @@ RUN php /usr/bin/composer self-update
 RUN php /usr/bin/composer create-project laravel/laravel /var/www/webapp
 
 # change folders permissions to www-data
+RUN chown -R www-data:www-data /var/www/webapp
 RUN chgrp -R www-data storage bootstrap/cache
 RUN chmod -R ug+rwx storage bootstrap/cache
 
