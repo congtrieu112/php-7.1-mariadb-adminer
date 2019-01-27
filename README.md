@@ -1,4 +1,4 @@
-# PHP 7.1 - apache - composer
+# PHP 7.1 - apache - mariadb - adminer
 
 Install php7.1 plus all dependecies, enable PECL repository from ppa:ondrej/php, install composer and "prestissimo" package to speedup the installation of packages.
 
@@ -17,7 +17,7 @@ docker build -t php71-apache .
 ## run
 
 ```
-docker run -d -p 8090:80 --rm --name php71-apache -v $(pwd)/app/:/var/www/webapp -v $(pwd)/vhost.conf:/etc/apache2/sites-available/000-default.conf -v $(pwd)/php.ini:/etc/php/7.1/apache2/php.ini php71-apache
+docker-compose up -d
 ```
 
 ----
