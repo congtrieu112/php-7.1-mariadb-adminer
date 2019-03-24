@@ -3,11 +3,6 @@ version: '2'
 services:
   mariadb:
     image: 'bitnami/mariadb:latest'
-<<<<<<< HEAD
-=======
-    volumes:
-      - ./mysql/:/var/lib/mysql
->>>>>>> d8243bf81f82f5baf31d678126b4925995ae652d
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
       - MARIADB_USER=my_user
@@ -22,7 +17,7 @@ services:
       - 8080:8080
   myapp:
     tty: true
-    image: 'php71-apache'
+    build: .
     environment:
       - DB_HOST=mariadb
       - DB_USERNAME=my_user
@@ -32,5 +27,5 @@ services:
       - 8090:80
     volumes:
       - ./app:/var/www/webapp
-      - ./vhost.conf:/etc/apache2/sites-available/000-default.conf
-      - ./php.ini:/etc/php/7.1/apache2/php.ini
+      - ./vhost.conf:/etc/apache2/sites-enabled/000-default.conf
+      - ./php-dev.ini:/usr/local/etc/php/php.ini

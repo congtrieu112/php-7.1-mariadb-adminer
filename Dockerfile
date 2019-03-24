@@ -1,66 +1,62 @@
-FROM ubuntu:xenial
+FROM php:7.1-apache
 
-RUN apt-get update
+# Install PHP extensions
+RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - \
+    && apt-get update && apt-get install -y \
+      libicu-dev \
+      libpq-dev \
+      ca-certificates \
+      libmcrypt-dev \
+      libreadline-dev \
+      mysql-client \
+      default-libmysqlclient-dev \
+      ruby-full \
+      nodejs \
+      git \
+    && rm -r /var/lib/apt/lists/* \
+    && docker-php-ext-configure pdo_mysql --with-pdo-mysql=mysqlnd \
+    && docker-php-ext-install \
+      intl \
+      mbstring \
+      mcrypt \
+      mysqli \
+      pcntl \
+      pdo_mysql \
+      pdo_pgsql \
+      pgsql \
+      zip \
+      opcache \
+      bcmath
 
-# enable add-apt-repository command:
-RUN apt-get -y install software-properties-common 
+# Install composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 
-# The main PPA for supported PHP versions with many PECL extensions
-RUN LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
-RUN apt-get update
+# SASS compiler
+RUN su -c "gem install sass"
 
-#install php7.1 and dependecies
-RUN apt-get -y install curl git vim apache2 libapache2-mod-php7.1  php7.1 php7.1-xml php7.1-mbstring php7.1-mysql php7.1-json php7.1-curl php7.1-cli php7.1-common php7.1-mcrypt php7.1-gd libapache2-mod-php7.1 php7.1-zip
+# Install Xdebug
+RUN curl -fsSL 'https://xdebug.org/files/xdebug-2.5.1.tgz' -o xdebug.tar.gz \
+    && mkdir -p xdebug \
+    && tar -xf xdebug.tar.gz -C xdebug --strip-components=1 \
+    && rm xdebug.tar.gz \
+    && ( \
+    cd xdebug \
+    && phpize \
+    && ./configure --enable-xdebug \
+    && make -j$(nproc) \
+    && make install \
+    ) \
+    && rm -r xdebug \
+    && docker-php-ext-enable xdebug
 
-# install node 8.x
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
-RUN apt-get install -y nodejs
+# Put apache config
+COPY vhost.conf /etc/apache2/sites-enabled/000-default.conf
+RUN  a2enmod rewrite
 
-# build tools for native libraries
-RUN echo "installing build essentials...\n"
-RUN apt-get install -y build-essential
+# Change uid and gid of apache to docker user uid/gid
+RUN usermod -u 1000 www-data && groupmod -g 1000 www-data
 
+RUN pecl install mongodb && docker-php-ext-enable mongodb
+RUN composer global require "hirak/prestissimo:^0.3"
 
-# install composer dependecy manager 
-RUN php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer
-
-#
-# install php dependecies
-#COPY ./app /var/www/webapp
-WORKDIR /var/www/webapp
-
-#
-# speedup composer: 
-
-# 1 - setup https to speedup composer. see: https://debril.org/how-to-fix-composers-slowness.html
-RUN php /usr/bin/composer config --global repo.packagist composer https://packagist.org 
-
-# 2 - speed up composer with this library that do parallel downloads
-RUN php /usr/bin/composer -vvv global require hirak/prestissimo
-
-# fix and update
-RUN php /usr/bin/composer self-update
-
-
-#
-
-
-# change folders permissions to www-data
-RUN chown -R www-data:www-data /var/www/webapp
-
-
-
-
-# apache enable mod_rewrite
-RUN a2enmod rewrite
-
-#setup apache2
-ENV APACHE_RUN_USER www-data
-ENV APACHE_RUN_GROUP www-data
-ENV APACHE_LOG_DIR /var/log/apache2
-ENV APACHE_LOCK_DIR /var/lock/apache2
-ENV APACHE_PID_FILE /var/run/apache2.pid
-
-EXPOSE 80
-
-CMD /usr/sbin/apache2ctl -D FOREGROUND
+WORKDIR /var/www/webapp 
